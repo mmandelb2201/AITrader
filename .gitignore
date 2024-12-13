@@ -161,3 +161,81 @@ cython_debug/
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
+
+# .NET
+
+
+# Visual Studio
+.vs/
+*.vscode
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.VC.db
+*.VC.VC.opendb
+*.pidb
+bin/
+obj/
+packages/
+
+# Rider
+.idea/
+*.sln.iml
+
+# User-specific files
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Windows image file caches
+Thumbs.db
+ehthumbs.db
+
+# macOS files
+.DS_Store
+
+# Logs
+*.log
+
+# Configuration files
+appsettings.*.json
+appsettings.local.json
+
+# Resharper
+*.DotSettings.user
+_ReSharper*/
+_ReSharper.Caches/
+
+# Build results
+*.dll
+*.exe
+*.so
+*.dylib
+*.pyc
+*.pyo
+*.pdb
+
+# Project-specific
+*.localhistory/
+test-results/
+coverage/
+coverage.info
+
+# IDE Backup and history
+*.bak
+*.swp
+*.tmp
+*.temp
+*.TMP
+*.log
+
+# Known filename patterns to ignore
+*.seed
+*.sql
+*.sqlite
+
+# Temporary files
+*.tmp
+*.temp
