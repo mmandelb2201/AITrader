@@ -1,5 +1,0 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
-<Configuration>
-	<ModelFilePath>C:\Users\mattr\OneDrive\Desktop\src\AITrader\model\models\model.onnx</ModelFilePath>
-	<RiskTolerance>0.75</RiskTolerance>
-</Configuration>
