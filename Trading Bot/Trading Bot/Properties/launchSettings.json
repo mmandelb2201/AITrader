@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "Trading Bot": {
+      "commandName": "Project"
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker"
+    }
+  }
+}

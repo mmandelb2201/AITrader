@@ -27,40 +27,23 @@ namespace AI_Trader_Runner
                  0.4146366f ,
                  0.41320952f
             };
-            long[] dimensions =
-            {
-                10, 1
-            };
+            var dimensions = new[] { 1, 10, 1 };
 
-            using var inputOrtValue = OrtValue.CreateTensorValueFromMemory(sourceData, dimensions);
 
             // Convert the 1D array to a tensor with shape [10, 1]
-            var tensor = new DenseTensor<float>(sourceData, new[] { 10, 1 });
+            var tensor = new DenseTensor<float>(sourceData, dimensions);
+            var input = NamedOnnxValue.CreateFromTensor("input_1", tensor);
 
-            // Create a sequence containing the tensor
-            var sequence = new List<NamedOnnxValue>
-            {
-                NamedOnnxValue.CreateFromTensor("input_1", tensor)
-            };
-
-            var namedOnnxValue = NamedOnnxValue.CreateFromSequence("input_1", sequence);
-
-            var inputs = new Dictionary<string, OrtValue> {
-                { "input_1",  inputOrtValue }
-            };
-
+            var container = new List<NamedOnnxValue>() { input };
             using var runOptions = new RunOptions();
 
-            // Pass inputs and request the first output
-            // Note that the output is a disposable collection that holds OrtValues
-            using var output = session.Run(new List<NamedOnnxValue> { namedOnnxValue } , session.OutputNames, runOptions);
-
-            var output_0 = output[0];
-
-            // Assuming the output contains a tensor of float data, you can access it as follows
-            // Returns Span<float> which points directly to native memory.
-            var outputData = output_0.Value;
-            Console.WriteLine($"Output is : {outputData}");
+            using(var results = session.Run(container))
+            {
+                foreach (var result in results)
+                {
+                    Console.WriteLine($"Result: {result.AsTensor<float>().GetArrayString()}");
+                }
+            }
         }
     }
 }
