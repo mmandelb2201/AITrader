@@ -5,26 +5,17 @@ namespace Trading_Bot
 {
     internal class Program
     {
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
-            Configuration.Load(".\\Config.xml");
+            Configuration.Load("Config.xml");
+            Initialize();
+            await Predictor.PredictAsync().ConfigureAwait(false);
+        }
 
-            float[] sourceData = new float[]
-            {
-                0.41186284f ,
-                0.41314922f ,
-                0.41184274f ,
-                0.41075736f ,
-                0.40959157f ,
-                0.41011417f ,
-                0.41152114f ,
-                0.41019457f ,
-                0.4146366f ,
-                0.41320952f
-            };
-
-            var prediction = ModelInvoker.Predict(sourceData);
-            Console.WriteLine(prediction);
+        private static void Initialize()
+        {
+            var trainingDataPath = Path.Combine(Configuration.ModelProjectPath, Configuration.TrainingDataPath);
+            MinMaxScaler.Fit(trainingDataPath);
         }
     }
 }

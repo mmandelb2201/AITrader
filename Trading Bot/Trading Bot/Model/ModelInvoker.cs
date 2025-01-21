@@ -12,7 +12,8 @@ namespace Trading_Bot.Model
             if (inputs is null || inputs.Length != 10)
                 throw new ArgumentException("Predict must take an array of exactly 10 floats");
             
-            using var session = new InferenceSession(Configuration.ModelFilePath);
+            var modelPath = Path.Combine(Configuration.ModelProjectPath, Configuration.ModelLocalPath);
+            using var session = new InferenceSession(modelPath);
             var dimensions = new[] { 1, 10, 1 };
 
             // Convert the 1D array to a tensor with shape [10, 1]
@@ -22,12 +23,10 @@ namespace Trading_Bot.Model
             var container = new List<NamedOnnxValue>() { input };
             using var runOptions = new RunOptions();
 
-            using (var results = session.Run(container))
+            using var results = session.Run(container);
+            foreach (var result in results)
             {
-                foreach (var result in results)
-                {
-                    return result.AsTensor<float>().GetValue(0);
-                }
+                return result.AsTensor<float>().GetValue(0);
             }
 
             throw new ModelInvokeError("Error Invoking Model");
