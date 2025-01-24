@@ -1,5 +1,6 @@
 ﻿using Trading_Bot.Config;
 using Trading_Bot.Model;
+using Trading_Bot.Trader;
 
 namespace Trading_Bot
 {
@@ -9,7 +10,7 @@ namespace Trading_Bot
         {
             Configuration.Load("Config.xml");
             Initialize();
-            await Predictor.PredictAsync().ConfigureAwait(false);
+            var (isBuy, portfolioFraction) = await TradingSequence.TradingStepAsync().ConfigureAwait(false);
         }
 
         private static void Initialize()

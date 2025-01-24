@@ -5,8 +5,18 @@ using Trading_Bot.Model.Exceptions;
 
 namespace Trading_Bot.Model
 {
+    /// <summary>
+    /// Interfaces with ONNX LSTM model to get a prediction.
+    /// </summary>
     public static class ModelInvoker
     {
+        /// <summary>
+        /// Get prediction from an LSTM model.
+        /// </summary>
+        /// <param name="inputs">Array of length 10 of inputs.</param>
+        /// <returns>Float prediction based on inputs.</returns>
+        /// <exception cref="ArgumentException">Throws if inputs is not exactly 10 elements.</exception>
+        /// <exception cref="ModelInvokeError">Throws if invoking model does not produce a prediction.</exception>
         public static float Predict(float[] inputs)
         {
             if (inputs is null || inputs.Length != 10)
@@ -29,7 +39,7 @@ namespace Trading_Bot.Model
                 return result.AsTensor<float>().GetValue(0);
             }
 
-            throw new ModelInvokeError("Error Invoking Model");
+            throw new ModelInvokeError("Invoking model gave 0 predictions.");
         }
     }
 }
