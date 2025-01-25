@@ -13,6 +13,7 @@ namespace Trading_Bot.Config
         public static string TrainingDataPath { get; set; }
         public static double RiskTolerance { get; set; }
         public static int Interval { get; set; }
+        public static int PredictionInterval { get; set; }
         public static int SequenceLength { get; set; }
 
         /// <summary>
@@ -30,6 +31,7 @@ namespace Trading_Bot.Config
             TrainingDataPath = data.TrainingDataPath;
             RiskTolerance = data.RiskTolerance;
             Interval = data.Interval;
+            PredictionInterval = data.PredictionInterval;
             SequenceLength = data.SequenceLength;
             PrintConfiguration();
         }
@@ -43,6 +45,7 @@ namespace Trading_Bot.Config
             Console.WriteLine("Risk tolerance: " + RiskTolerance);
             Console.WriteLine("Interval: " + Interval);
             Console.WriteLine("Sequence length: " + SequenceLength);
+            Console.WriteLine("Prediction Interval: " + PredictionInterval);
         }
     }
 

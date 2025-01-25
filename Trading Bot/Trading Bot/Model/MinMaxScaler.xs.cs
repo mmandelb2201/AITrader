@@ -1,6 +1,3 @@
-using System;
-using System.Linq;
-
 namespace Trading_Bot.Model;
 
 /// <summary>

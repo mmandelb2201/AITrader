@@ -16,6 +16,8 @@ namespace Trading_Bot.Config
         public double RiskTolerance { get; set; }
         [XmlElement("Interval")]
         public int Interval { get; set; }
+        [XmlElement("PredictionInterval")]
+        public int PredictionInterval { get; set; }
         [XmlElement("SequenceLength")]
         public int SequenceLength { get; set; }
     }

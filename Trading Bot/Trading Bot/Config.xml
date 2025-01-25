@@ -6,4 +6,5 @@
 	<RiskTolerance>0.75</RiskTolerance>
 	<Interval>15</Interval>
 	<SequenceLength>10</SequenceLength>
+	<PredictionInterval>5</PredictionInterval>
 </Configuration>

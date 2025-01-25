@@ -1,13 +1,19 @@
 using Trading_Bot.Coinbase;
 using Trading_Bot.Coinbase.Exceptions;
 using Trading_Bot.Config;
+using Trading_Bot.Logger;
 using Trading_Bot.Model;
 
 namespace Trading_Bot.Trader;
 
+/// <summary>
+/// Performs entire sequence to see how much to trade, and whether to buy or sell.
+/// </summary>
 public static class TradingSequence
 {
     private const string ETH = "ETH-USD";
+    private static readonly PriceLogger _priceLogger = new PriceLogger();
+    private static readonly PredictionLogger _predictionLogger = new PredictionLogger();
 
     /// <summary>
     /// Invokes LSTM Model to grab predicted price, and calculates what percent of portforlio to trade.
@@ -30,6 +36,8 @@ public static class TradingSequence
     {
         var scaledPrices = MinMaxScaler.Transform(inputs);
         var predictedPrice = ModelInvoker.Predict(scaledPrices);
+        //Log prediction as this helps check model performance with real data.
+        _predictionLogger.LogPrice(MinMaxScaler.DeTransform(predictedPrice));
         return predictedPrice;
     }
 
@@ -41,20 +49,21 @@ public static class TradingSequence
         
         long unixTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         var coinbaseClient = new CoinbaseClient();
-        for (int i = 0; i < sequenceLength; i++)
+        while (prices.Count < Configuration.SequenceLength)
         {
             try
             {
                 var trade = await coinbaseClient.GetPriceAsync(ETH, unixTime).ConfigureAwait(false);
                 prices.Add(Convert.ToSingle(trade.Price));
+
+                //Log prices. This helps retraining the model with more datapoints later.
+                _priceLogger.LogPrice(DateTimeOffset.FromUnixTimeSeconds(unixTime).UtcDateTime, Convert.ToSingle(trade.Price));
+                unixTime -= interval;
             }
-            catch (NoTradesFoundException e)
+            catch (NoTradesFoundException)
             {
-                unixTime--;   
-                var trade = await coinbaseClient.GetPriceAsync(ETH, unixTime).ConfigureAwait(false);
-                prices.Add(Convert.ToSingle(trade.Price));
+                unixTime--;
             }
-            unixTime -= interval;
         }
         return prices.ToArray();
     }
