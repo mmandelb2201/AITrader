@@ -28,7 +28,7 @@ namespace Trading_Bot.Model
 
             // Convert the 1D array to a tensor with shape [10, 1]
             var tensor = new DenseTensor<float>(inputs, dimensions);
-            var input = NamedOnnxValue.CreateFromTensor("input_1", tensor);
+            var input = NamedOnnxValue.CreateFromTensor("input", tensor);
 
             var container = new List<NamedOnnxValue>() { input };
             using var runOptions = new RunOptions();
