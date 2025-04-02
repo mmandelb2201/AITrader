@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# csv files and model params files to not make repo too big
+*.csv
+model_params/
+
 # C extensions
 *.so
 
