@@ -23,8 +23,8 @@ public static class MinMaxScaler
     /// <summary>
     /// Performs MinMax scaling on set of data. Scale is set by Fit method.
     /// </summary>
-    /// <param name="data">Array of float to transform.</param>
-    /// <returns>Array of transformed data.</returns>
+    /// <param name="data">Array of float to scale.</param>
+    /// <returns>Array of scaled data.</returns>
     public static float[] Transform(float[] data)
     {
         return data.Select(x => (x - min) / (max - min)).ToArray();
@@ -33,8 +33,8 @@ public static class MinMaxScaler
     /// <summary>
     /// Descales data based on MinMax formula.
     /// </summary>
-    /// <param name="data">Transformed float to detransform.</param>
-    /// <returns>Detransformed number.</returns>
+    /// <param name="data">Scaled float to descale.</param>
+    /// <returns>Descaled number.</returns>
     public static float DeTransform(float data)
     {
         return (max - min) * data + min;
