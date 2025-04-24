@@ -20,7 +20,7 @@ public static class TradingSequence
     /// </summary>
     /// <returns>Tuple containing a bool and a double. First value is <see langword="true" /> if price will go up,
     /// <see langword="false" /> otherwise. Second value is the predicted price.</returns>
-    public static async Task<(bool, double)> TradingStepAsync()
+    public static async Task<(bool, double)> PredictionStepAsync()
     {
         var previousPrices = await GetPreviousPricesAsync().ConfigureAwait(false);
         var predictedPrice = Predict(previousPrices);
@@ -53,7 +53,7 @@ public static class TradingSequence
         {
             try
             {
-                var trade = await coinbaseClient.GetPriceAsync(ETH, unixTime).ConfigureAwait(false);
+                var trade = await coinbaseClient.GetProductAtTimeAsync(ETH, unixTime).ConfigureAwait(false);
                 prices.Add(Convert.ToSingle(trade.Price));
 
                 //Log prices. This helps retraining the model with more datapoints later.

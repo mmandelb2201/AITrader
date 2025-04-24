@@ -20,5 +20,7 @@ namespace Trading_Bot.Config
         public int PredictionInterval { get; set; }
         [XmlElement("SequenceLength")]
         public int SequenceLength { get; set; }
+        [XmlElement("Symbol")]
+        public string Symbol { get; set; }
     }
 }

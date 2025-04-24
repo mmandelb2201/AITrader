@@ -1,4 +1,5 @@
-﻿using Trading_Bot.Config;
+﻿using Trading_Bot.Coinbase;
+using Trading_Bot.Config;
 using Trading_Bot.Model;
 using Trading_Bot.Trader;
 
@@ -8,6 +9,14 @@ namespace Trading_Bot
     {
         static async Task Main(string[] args)
         {
+            /*var helper = new WalletHelper("./.env");
+            var usdAccount = await helper.GetUsdAccountAsync().ConfigureAwait(false);
+            Console.WriteLine("Amount: " + usdAccount.AvailableBalance.DecimalValue);
+            var product = "ETH-USD";
+            var coinbaseClient = new CoinbaseClient();
+            var ethProduct = await coinbaseClient.GetProductAsync(product).ConfigureAwait(false);
+            Console.WriteLine($"{product} price: {ethProduct.Price}");*/
+
             Configuration.Load("Config.xml");
             Initialize();
             await RunSequenceAsync().ConfigureAwait(false);
@@ -20,7 +29,7 @@ namespace Trading_Bot
             while (true)
             {
                 Console.WriteLine($"INFO: Executing run sequence at: {DateTime.Now.ToShortTimeString()}");
-                var (isBuy, portfolioFraction) = await TradingSequence.TradingStepAsync().ConfigureAwait(false);
+                var (isBuy, portfolioFraction) = await TradingSequence.PredictionStepAsync().ConfigureAwait(false);
                 Console.WriteLine($"INFO: isBuy:{isBuy} portfolioFraction: {portfolioFraction}");
 
                 // Check if the user has pressed a key

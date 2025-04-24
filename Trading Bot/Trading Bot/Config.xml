@@ -7,4 +7,5 @@
 	<Interval>15</Interval>
 	<SequenceLength>10</SequenceLength>
 	<PredictionInterval>5</PredictionInterval>
+	<Symbol>ETH</Symbol>
 </Configuration>

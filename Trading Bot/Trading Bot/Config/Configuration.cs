@@ -15,6 +15,8 @@ namespace Trading_Bot.Config
         public static int Interval { get; set; }
         public static int PredictionInterval { get; set; }
         public static int SequenceLength { get; set; }
+        public static string Symbol { get; set; }
+
 
         /// <summary>
         /// Loads the configuration file from the defined path.
@@ -33,6 +35,7 @@ namespace Trading_Bot.Config
             Interval = data.Interval;
             PredictionInterval = data.PredictionInterval;
             SequenceLength = data.SequenceLength;
+            Symbol = data.Symbol;
             PrintConfiguration();
         }
 
@@ -46,6 +49,7 @@ namespace Trading_Bot.Config
             Console.WriteLine("Interval: " + Interval);
             Console.WriteLine("Sequence length: " + SequenceLength);
             Console.WriteLine("Prediction Interval: " + PredictionInterval);
+            Console.WriteLine("Symbol: " + Symbol);
         }
     }
 
