@@ -47,7 +47,7 @@ public class WalletHelper
     /// <returns><see cref="Account"/> for given symbol.</returns>
     public async Task<Account> GetAccountForSymbolAsync(string symbol)
     {
-        if (String.IsNullOrEmpty(_jwtToken) || JwtGenerator.IsJwtExpired(_jwtToken))
+        if (string.IsNullOrEmpty(_jwtToken) || JwtGenerator.IsJwtExpired(_jwtToken))
         {
             _jwtToken = JwtGenerator.Generate(_envFilePath);
         }
@@ -58,7 +58,7 @@ public class WalletHelper
 
     public async Task<Account> GetUsdAccountAsync()
     {
-        if (String.IsNullOrEmpty(_jwtToken) || JwtGenerator.IsJwtExpired(_jwtToken))
+        if (string.IsNullOrEmpty(_jwtToken) || JwtGenerator.IsJwtExpired(_jwtToken))
         {
             _jwtToken = JwtGenerator.Generate(_envFilePath);
         }

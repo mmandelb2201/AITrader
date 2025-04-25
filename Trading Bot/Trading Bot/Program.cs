@@ -9,17 +9,17 @@ namespace Trading_Bot
     {
         static async Task Main(string[] args)
         {
-            /*var helper = new WalletHelper("./.env");
+            var helper = new WalletHelper("./.env");
             var usdAccount = await helper.GetUsdAccountAsync().ConfigureAwait(false);
             Console.WriteLine("Amount: " + usdAccount.AvailableBalance.DecimalValue);
             var product = "ETH-USD";
-            var coinbaseClient = new CoinbaseClient();
+            using var coinbaseClient = new CoinbaseClient();
             var ethProduct = await coinbaseClient.GetProductAsync(product).ConfigureAwait(false);
-            Console.WriteLine($"{product} price: {ethProduct.Price}");*/
+            Console.WriteLine($"{product} price: {ethProduct.Price}");
 
-            Configuration.Load("Config.xml");
+            /*Configuration.Load("Config.xml");
             Initialize();
-            await RunSequenceAsync().ConfigureAwait(false);
+            await RunSequenceAsync().ConfigureAwait(false);*/
         }
 
         private static async Task RunSequenceAsync()

@@ -1,4 +1,5 @@
-﻿using System.Net.Http.Headers;
+﻿using System.Net;
+using System.Net.Http.Headers;
 using System.Text.Json;
 using Trading_Bot.Coinbase.Models;
 using Trading_Bot.Coinbase.Exceptions;
@@ -8,9 +9,10 @@ namespace Trading_Bot.Coinbase
     /// <summary>
     /// Http client to connect with Coinbase REST API.
     /// </summary>
-    internal class CoinbaseClient
+    internal class CoinbaseClient : IDisposable
     {
         private readonly string BaseURL = "https://api.coinbase.com/api/";
+        private readonly HttpClient _httpClient = new HttpClient();
 
         /// <summary>
         /// Retrieves detailed product information for the specified symbol from the Coinbase Advanced Trade API.
@@ -20,14 +22,13 @@ namespace Trading_Bot.Coinbase
         /// <exception cref="ProductNotFoundException">Thrown if the product could not be found or the response could not be deserialized.</exception>
         public async Task<ProductDetails> GetProductAsync(string symbol)
         {
-            using var client = new HttpClient();
             var requestUrl = $"{BaseURL}v3/brokerage/market/products/{symbol}";
 
             var request = new HttpRequestMessage(HttpMethod.Get, requestUrl);
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-            var response = await client.SendAsync(request);
-            response.EnsureSuccessStatusCode();
+            var response = await _httpClient.SendAsync(request);
+            HandleResponseErrors(response);
 
             var json = await response.Content.ReadAsStringAsync();
             try
@@ -54,14 +55,13 @@ namespace Trading_Bot.Coinbase
         /// <exception cref="NoTradesFoundException">Throws if no price is found for given time.</exception>
         public async Task<Trade> GetProductAtTimeAsync(string symbol, long time)
         {
-            using var client = new HttpClient();
             var requestUrl = BaseURL + $"v3/brokerage/market/products/{symbol}/ticker?limit=1&start={time-1}&end={time}";
             var request = new HttpRequestMessage(HttpMethod.Get, requestUrl);
             var content = new StringContent(string.Empty);
             content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
             request.Content = content;
-            var response = await client.SendAsync(request);
-            response.EnsureSuccessStatusCode();
+            var response = await _httpClient.SendAsync(request);
+            HandleResponseErrors(response);
 
             string json = await response.Content.ReadAsStringAsync();
             var schema = JsonSerializer.Deserialize<Schema>(json);
@@ -84,7 +84,6 @@ namespace Trading_Bot.Coinbase
             if (string.IsNullOrEmpty(bearerToken))
                 throw new ArgumentNullException(nameof(bearerToken));
             
-            using var client = new HttpClient();
             var requestUrl = BaseURL + "v3/brokerage/accounts";
             var request = new HttpRequestMessage(HttpMethod.Get, requestUrl);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
@@ -92,8 +91,8 @@ namespace Trading_Bot.Coinbase
             var content = new StringContent(string.Empty);
             content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
             request.Content = content;
-            var response = await client.SendAsync(request);
-            response.EnsureSuccessStatusCode();
+            var response = await _httpClient.SendAsync(request);
+            HandleResponseErrors(response);
 
             string json = await response.Content.ReadAsStringAsync();
             var accountsResponse = JsonSerializer.Deserialize<AccountsResponse>(json);
@@ -116,7 +115,6 @@ namespace Trading_Bot.Coinbase
         /// <exception cref="TradeFailureException">Thrown when the order request fails or is rejected by the API.</exception>
         public async Task<string> CreateLimitOrderAsync(string bearerToken, string symbol, bool isBuy, int size, int limitPrice)
         {
-            using var client = new HttpClient();
             var requestUrl = BaseURL + "v3/brokerage/orders";
 
             var orderPayload = new
@@ -140,15 +138,36 @@ namespace Trading_Bot.Coinbase
             request.Content = new StringContent(JsonSerializer.Serialize(orderPayload));
             request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
 
-            var response = await client.SendAsync(request).ConfigureAwait(false);
+            var response = await _httpClient.SendAsync(request).ConfigureAwait(false);
             string result = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
             {
                 throw new TradeFailureException(response.StatusCode, result);
             }
+            HandleResponseErrors(response);
 
             return result;
+        }
+
+        /// <summary>
+        /// Method to ensure Http requests are handled in the same way if they fail.
+        /// </summary>
+        /// <param name="response">HttpResponse to check.</param>
+        /// <exception cref="CoinbaseAuthorizationException">Thrown if response status code is 401</exception>
+        private void HandleResponseErrors(HttpResponseMessage response)
+        {
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                throw new CoinbaseAuthorizationException();
+            }
+
+            response.EnsureSuccessStatusCode();
+        }
+
+        public void Dispose()
+        {
+            _httpClient.Dispose();
         }
     }
 }
