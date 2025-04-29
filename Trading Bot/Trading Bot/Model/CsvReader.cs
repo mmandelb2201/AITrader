@@ -5,9 +5,9 @@ namespace Trading_Bot.Model;
 
 internal static class CsvReader
 {
-    public static float[] GetValuesFromColumn(string path)
+    public static decimal[] GetValuesFromColumn(string path)
     {
-        List<float> prices = new List<float>();
+        List<decimal> prices = new List<decimal>();
 
         using (var reader = new StreamReader(path))
         using (var csv = new CsvHelper.CsvReader(reader, CultureInfo.InvariantCulture))
@@ -15,7 +15,7 @@ internal static class CsvReader
             var records = csv.GetRecords<dynamic>();
             foreach (var record in records)
             {
-                if (float.TryParse(record.price, out float price))
+                if (decimal.TryParse(record.price, out decimal price))
                 {
                     prices.Add(price);
                 }

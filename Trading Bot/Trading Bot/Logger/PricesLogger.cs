@@ -22,7 +22,7 @@
         /// </summary>
         /// <param name="time">Time of price.</param>
         /// <param name="price">Price at given time.</param>
-        public void LogPrice(DateTime timestamp, float price)
+        public void LogPrice(DateTime timestamp, decimal price)
         {
             // Retrieve Eastern Standard Time zone information
             TimeZoneInfo easternZone = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
