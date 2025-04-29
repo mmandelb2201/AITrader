@@ -9,17 +9,9 @@ namespace Trading_Bot
     {
         static async Task Main(string[] args)
         {
-            var helper = new WalletHelper("./.env");
-            var usdAccount = await helper.GetUsdAccountAsync().ConfigureAwait(false);
-            Console.WriteLine("Amount: " + usdAccount.AvailableBalance.DecimalValue);
-            var product = "ETH-USD";
-            using var coinbaseClient = new CoinbaseClient();
-            var ethProduct = await coinbaseClient.GetProductAsync(product).ConfigureAwait(false);
-            Console.WriteLine($"{product} price: {ethProduct.Price}");
-
-            /*Configuration.Load("Config.xml");
+            Configuration.Load("Config.xml");
             Initialize();
-            await RunSequenceAsync().ConfigureAwait(false);*/
+            await RunSequenceAsync().ConfigureAwait(false);
         }
 
         private static async Task RunSequenceAsync()
@@ -28,9 +20,8 @@ namespace Trading_Bot
 
             while (true)
             {
-                Console.WriteLine($"INFO: Executing run sequence at: {DateTime.Now.ToShortTimeString()}");
-                var (isBuy, portfolioFraction) = await TradingSequence.PredictionStepAsync().ConfigureAwait(false);
-                Console.WriteLine($"INFO: isBuy:{isBuy} portfolioFraction: {portfolioFraction}");
+                Console.WriteLine($"[INFO] Executing run sequence at: {DateTime.Now.ToShortTimeString()}");
+                await TradingSequence.PredictionStepAsync().ConfigureAwait(false);
 
                 // Check if the user has pressed a key
                 if (Console.KeyAvailable)
@@ -43,7 +34,8 @@ namespace Trading_Bot
                     }
                 }
 
-                await Task.Delay(1000 * Configuration.Interval * Configuration.SequenceLength).ConfigureAwait(false);
+                Console.WriteLine($"[INFO] Sleeping for {Configuration.Interval * Configuration.PredictionInterval} seconds");
+                await Task.Delay(1000 * Configuration.Interval * Configuration.PredictionInterval).ConfigureAwait(false);
             };
         }
 

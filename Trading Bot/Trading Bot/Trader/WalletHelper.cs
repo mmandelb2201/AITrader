@@ -1,5 +1,6 @@
 using Trading_Bot.Coinbase;
 using Trading_Bot.Coinbase.Models;
+using Trading_Bot.Config;
 
 namespace Trading_Bot.Trader;
 
@@ -9,7 +10,9 @@ namespace Trading_Bot.Trader;
 public class WalletHelper
 {
     private const string UsdWalletName = "Cash (USD)";
-    private readonly string _envFilePath = "../.env";
+    private const string CoinbaseRequestPath = "/api/v3/brokerage/accounts";
+    private const string CoinbaseRequestMethod = "GET";
+    private readonly string? _envFilePath = Configuration.EnvFilePath;
     private string _jwtToken;
     private readonly CoinbaseClient _coinbaseClient = new CoinbaseClient();
 
@@ -24,7 +27,7 @@ public class WalletHelper
     /// Constructor for <see cref="WalletHelper"/>
     /// </summary>
     /// <param name="envFilePath">Relative file path for .env file containing coinbase account information.</param>
-    public WalletHelper(string envFilePath)
+    public WalletHelper(string? envFilePath)
     {
         _envFilePath = envFilePath;
     }
@@ -49,7 +52,7 @@ public class WalletHelper
     {
         if (string.IsNullOrEmpty(_jwtToken) || JwtGenerator.IsJwtExpired(_jwtToken))
         {
-            _jwtToken = JwtGenerator.Generate(_envFilePath);
+            _jwtToken = JwtGenerator.Generate(_envFilePath, CoinbaseRequestMethod, CoinbaseRequestPath);
         }
 
         var accountsResponse = await _coinbaseClient.GetAccountsAsync(_jwtToken).ConfigureAwait(false);
@@ -60,10 +63,10 @@ public class WalletHelper
     {
         if (string.IsNullOrEmpty(_jwtToken) || JwtGenerator.IsJwtExpired(_jwtToken))
         {
-            _jwtToken = JwtGenerator.Generate(_envFilePath);
+            _jwtToken = JwtGenerator.Generate(_envFilePath, CoinbaseRequestMethod, CoinbaseRequestPath);
         }
         
         var accountsResponse = await _coinbaseClient.GetAccountsAsync(_jwtToken).ConfigureAwait(false);
-        return accountsResponse.Accounts.First(a => a.Name == UsdWalletName); 
+        return accountsResponse.Accounts.First(a => a.Name.Equals(UsdWalletName, StringComparison.InvariantCultureIgnoreCase)); 
     }
 }
