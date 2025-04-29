@@ -22,11 +22,5 @@ namespace Trading_Bot.Config
         public int SequenceLength { get; set; }
         [XmlElement("Symbol")]
         public string Symbol { get; set; }
-        [XmlElement("LimitOffset")]
-        public decimal LimitOffset { get; set; }
-        [XmlElement("TradePercentageThreshold")]
-        public decimal TradePercentageThreshold { get; set; }
-        [XmlElement("EnvFilePath")]
-        public string? EnvFilePath { get; set; }
     }
 }

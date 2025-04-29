@@ -1,7 +1,5 @@
 ﻿using System.Net;
 using System.Net.Http.Headers;
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using Trading_Bot.Coinbase.Models;
 using Trading_Bot.Coinbase.Exceptions;
@@ -104,26 +102,21 @@ namespace Trading_Bot.Coinbase
             
             return accountsResponse;
         }
-            
+        
         /// <summary>
-        /// Places a limit order on the Coinbase Advanced Trade platform using a pre-generated JWT bearer token.
+        /// Places a limit order on the Coinbase Advanced Trade platform using the specified parameters.
         /// </summary>
+        /// <param name="bearerToken">Bearer token for current user.</param>
         /// <param name="symbol">The trading pair symbol (e.g., "ETH-USD").</param>
         /// <param name="isBuy">True to place a BUY order; false to place a SELL order.</param>
-        /// <param name="size">The decimal quantity of the base currency to trade.</param>
+        /// <param name="size">The integer quantity of the base currency to trade.</param>
         /// <param name="limitPrice">The limit price at which to place the order.</param>
         /// <returns>The raw JSON response from the Coinbase API as a string.</returns>
         /// <exception cref="TradeFailureException">Thrown when the order request fails or is rejected by the API.</exception>
-        public async Task<string> CreateLimitOrderAsync(
-            string symbol,
-            bool isBuy,
-            decimal size,
-            decimal limitPrice)
+        public async Task<string> CreateLimitOrderAsync(string bearerToken, string symbol, bool isBuy, int size, int limitPrice)
         {
-            var requestPath = "v3/brokerage/orders";
-            var requestUrl = BaseURL + requestPath;
-            var jwtToken = JwtGenerator.Generate(requestMethod: "POST", requestPath: "/api/v3/brokerage/orders");
-            
+            var requestUrl = BaseURL + "v3/brokerage/orders";
+
             var orderPayload = new
             {
                 client_order_id = Guid.NewGuid().ToString(),
@@ -133,15 +126,15 @@ namespace Trading_Bot.Coinbase
                 {
                     limit_limit_gtc = new
                     {
-                        base_size = size.ToString("0.00000000"), // Match Coinbase's decimal precision
-                        limit_price = limitPrice.ToString("F2"), // Match 2 decimal format for prices
-                        post_only = true
+                        base_size = size.ToString(),           // fixed amount of ETH to trade
+                        limit_price = limitPrice.ToString("F2"),   // formatted as decimal string (e.g., "3175.00")
+                        post_only = true                        // ensures you’re a maker (won’t match instantly)
                     }
                 }
             };
 
             var request = new HttpRequestMessage(HttpMethod.Post, requestUrl);
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwtToken);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
             request.Content = new StringContent(JsonSerializer.Serialize(orderPayload));
             request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
 

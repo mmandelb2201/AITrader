@@ -20,7 +20,7 @@ namespace Trading_Bot.Logger
         /// Log prediction with time the prediciton should coorespond to.
         /// </summary>
         /// <param name="price">Predicted price.</param>
-        public void LogPrice(decimal price)
+        public void LogPrice(float price)
         {
             var currentTime = DateTime.Now;
             var timestamp = currentTime.AddSeconds(Configuration.Interval * Configuration.PredictionInterval);

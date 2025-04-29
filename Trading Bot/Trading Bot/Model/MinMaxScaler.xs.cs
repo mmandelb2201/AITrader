@@ -6,8 +6,8 @@ namespace Trading_Bot.Model;
 /// </summary>
 public static class MinMaxScaler
 {
-    private static decimal min;
-    private static decimal max;
+    private static float min;
+    private static float max;
 
     /// <summary>
     /// Reads price column from a given csv file, and configures <see cref="MinMaxScaler"/> based on it.
@@ -23,9 +23,9 @@ public static class MinMaxScaler
     /// <summary>
     /// Performs MinMax scaling on set of data. Scale is set by Fit method.
     /// </summary>
-    /// <param name="data">Array of decimal to scale.</param>
+    /// <param name="data">Array of float to scale.</param>
     /// <returns>Array of scaled data.</returns>
-    public static decimal[] Transform(decimal[] data)
+    public static float[] Transform(float[] data)
     {
         return data.Select(x => (x - min) / (max - min)).ToArray();
     }
@@ -33,9 +33,9 @@ public static class MinMaxScaler
     /// <summary>
     /// Descales data based on MinMax formula.
     /// </summary>
-    /// <param name="data">Scaled decimal to descale.</param>
+    /// <param name="data">Scaled float to descale.</param>
     /// <returns>Descaled number.</returns>
-    public static decimal DeTransform(decimal data)
+    public static float DeTransform(float data)
     {
         return (max - min) * data + min;
     }

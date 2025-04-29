@@ -16,11 +16,8 @@ namespace Trading_Bot.Config
         public static int PredictionInterval { get; set; }
         public static int SequenceLength { get; set; }
         public static string Symbol { get; set; }
-        public static decimal LimitOffset { get; set; }
-        public static decimal TradePercentageThreshold { get; set; }
-        public static string? EnvFilePath { get; set; }
 
-        
+
         /// <summary>
         /// Loads the configuration file from the defined path.
         /// Prints out the found configuration.
@@ -39,9 +36,6 @@ namespace Trading_Bot.Config
             PredictionInterval = data.PredictionInterval;
             SequenceLength = data.SequenceLength;
             Symbol = data.Symbol;
-            LimitOffset = data.LimitOffset;
-            TradePercentageThreshold = data.TradePercentageThreshold;
-            EnvFilePath = data.EnvFilePath;
             PrintConfiguration();
         }
 
@@ -56,11 +50,8 @@ namespace Trading_Bot.Config
             Console.WriteLine("Sequence length: " + SequenceLength);
             Console.WriteLine("Prediction Interval: " + PredictionInterval);
             Console.WriteLine("Symbol: " + Symbol);
-            Console.WriteLine("EnvFilePath: " + EnvFilePath);
-            Console.WriteLine("Limit orders will be place with an offset of: " + FormatUsd(LimitOffset));
-            Console.WriteLine("Trades will be placed if the percent diff is greater than: " + TradePercentageThreshold.ToString($"P1"));
         }
-        
-        private static string FormatUsd(decimal value) => $"${value:N2}";
     }
+
+
 }
