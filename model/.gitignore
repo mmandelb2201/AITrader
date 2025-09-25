@@ -1,2 +1,5 @@
 # Ignore all CSV files
 *.csv
+*.h5
+*.keras
+*.json

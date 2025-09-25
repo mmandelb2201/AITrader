@@ -4,9 +4,9 @@
 	<ModelLocalPath>models/model.onnx</ModelLocalPath>
 	<TrainingDataPath>resampled_data.csv</TrainingDataPath>
 	<RiskTolerance>0.75</RiskTolerance>
-	<Interval>60</Interval>
-	<SequenceLength>15</SequenceLength>
-	<PredictionInterval>30</PredictionInterval>
+	<Interval>720</Interval>
+	<SequenceLength>10</SequenceLength>
+	<PredictionInterval>5</PredictionInterval>
 	<Symbol>ETH</Symbol>
 	<LimitOffset>0.5</LimitOffset>
 	<TradePercentageThreshold>0.01</TradePercentageThreshold>
