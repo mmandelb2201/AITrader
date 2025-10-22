@@ -1,6 +1,6 @@
-LOOKBACK_L = 48     # lookback window length (hours)
+LOOKBACK_L = 96     # lookback window length (hours)
 HORIZON_H  = 3      # prediction horizon (hours)
-FEATURES = ['price_pct_change']
+FEATURES = ['price_pct_change', 'volume_pct_change']
 TARGET   = "target_pct_chage"
 BATCH_TRAIN = 256
 BATCH_EVAL  = 512
