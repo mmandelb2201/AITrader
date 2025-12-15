@@ -43,8 +43,8 @@ The machine learning component built with TensorFlow that:
 
 **Model Configuration:**
 ```python
-SEQUENCE_LENGTH = 100    # 500 seconds lookback window (5s intervals)
-LOOKAHEAD_STEPS = 180    # 15 minutes prediction horizon (5s intervals)
+SEQUENCE_LENGTH = 100    # 500 seconds lookback window (100 timesteps of 5s intervals)
+LOOKAHEAD_STEPS = 180    # 15 minutes prediction horizon (180 timesteps of 5s intervals)
 TAKE_PROFIT_PCT = 0.0015 # +0.15% dynamic threshold
 STOP_LOSS_PCT = 0.0015   # -0.15% dynamic threshold
 ```
@@ -168,8 +168,8 @@ docker run -v $(pwd)/Config.xml:/app/Config.xml \
 ### Model Configuration (`model/classifier_model/simple_l2_cnn.ipynb`)
 
 Adjust these parameters in the notebook based on your training needs:
-- `SEQUENCE_LENGTH` - Number of timesteps in lookback window (default: 100 = 500 seconds)
-- `LOOKAHEAD_STEPS` - Prediction horizon in timesteps (default: 180 = 15 minutes)
+- `SEQUENCE_LENGTH` - Number of timesteps in lookback window (default: 100 timesteps = 500 seconds with 5s intervals)
+- `LOOKAHEAD_STEPS` - Prediction horizon in timesteps (default: 180 timesteps = 15 minutes with 5s intervals)
 - `TAKE_PROFIT_PCT` / `STOP_LOSS_PCT` - Dynamic threshold multipliers for triple barrier labeling
 - Training parameters: batch size, epochs, learning rate, etc.
 
