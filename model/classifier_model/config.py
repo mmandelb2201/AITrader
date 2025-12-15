@@ -1,4 +1,4 @@
-LOOKBACK_L = 96     # lookback window length (hours)
+LOOKBACK_L = 48     # lookback window length (hours)
 HORIZON_H  = 3      # prediction horizon (hours)
 FEATURES = ['price_pct_change', 'volume_pct_change']
 TARGET   = "target_pct_chage"
@@ -7,3 +7,4 @@ BATCH_EVAL  = 512
 EPOCHS = 30
 ASSUME_TZ = None
 TEST_SAMPLES = 2000
+THRESHOLD = 0
