@@ -154,6 +154,7 @@ class OrderBookCollector:
         logger.info(f"   Duration: {duration_hours} hours")
         logger.info(f"   Interval: {interval_seconds} seconds")
         logger.info(f"   Save path: {save_path}")
+        logger.info(f"   Storage mode: Keep only last 100 rows")
         logger.info(f"   Expected snapshots: ~{int(duration_hours * 3600 / interval_seconds):,}")
         print(f"   Expected snapshots: ~{int(duration_hours * 3600 / interval_seconds):,}")
         
@@ -166,14 +167,18 @@ class OrderBookCollector:
                     self.data.append(snapshot)
                     snapshots_collected += 1
                     
-                    # Save every 100 snapshots
+                    # Keep only last 100 rows in memory to save storage
+                    if len(self.data) > 100:
+                        self.data = self.data[-100:]
+                    
+                    # Save every 100 snapshots (but CSV will only have last 100 rows)
                     if snapshots_collected % 100 == 0:
                         logger.info(f"📈 Collected {snapshots_collected} snapshots (latest: {snapshot['timestamp']})")
-                        print(f"💾 Saving to CSV...")
+                        print(f"💾 Saving to CSV (last 100 rows only)...")
                         df = pd.DataFrame(self.data)
                         df.to_csv(save_path, index=False)
-                        logger.info(f"✅ Saved {snapshots_collected} snapshots to {save_path}")
-                        print(f"✅ Saved {snapshots_collected} snapshots to {save_path}")
+                        logger.info(f"✅ Saved last 100 snapshots to {save_path}")
+                        print(f"✅ Saved last 100 snapshots to {save_path}")
                 
                 time.sleep(interval_seconds)
         
@@ -181,9 +186,9 @@ class OrderBookCollector:
             logger.warning("\n⚠️  Collection interrupted by user")
         
         finally:
-            # Final save
+            # Final save (only last 100 rows)
             if self.data:
-                df = pd.DataFrame(self.data)
+                df = pd.DataFrame(self.data[-100:])
                 df.to_csv(save_path, index=False)
                 logger.info(f"\n✅ Final save: {len(df)} snapshots saved to {save_path}")
                 logger.info(f"   Time range: {df['timestamp'].min()} to {df['timestamp'].max()}")
