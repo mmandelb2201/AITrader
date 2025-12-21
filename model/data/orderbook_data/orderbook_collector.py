@@ -1,220 +1,176 @@
 """
-Order Book Data Collector for ETH
-Collects order book snapshots from Coinbase and saves to CSV
+Crypto Data Collector (ETH + BTC)
+Collects Order Book + Price/Volume data for multiple pairs simultaneously.
+Logs consolidated status updates to console only.
 """
 
 import requests
 import pandas as pd
-import numpy as np
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
-import json
 import logging
-from logging.handlers import RotatingFileHandler
 
-# Configure logging with rotation (max 10MB per file, keep 5 files)
+# --- LOGGING SETUP ---
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-# Console handler
+# Console Handler
 console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.INFO)
-console_formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
-console_handler.setFormatter(console_formatter)
-
-# File handler with rotation
-file_handler = RotatingFileHandler(
-    'orderbook_collector.log',
-    maxBytes=10 * 1024 * 1024,  # 10 MB per file
-    backupCount=5  # Keep 5 old files (total max ~60 MB)
-)
-file_handler.setLevel(logging.INFO)
-file_formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
-file_handler.setFormatter(file_formatter)
+# Format: [INFO][12:00:00] Message
+console_handler.setFormatter(logging.Formatter("[%(levelname)s][%(asctime)s] %(message)s", datefmt="%H:%M:%S"))
 
 logger.addHandler(console_handler)
-logger.addHandler(file_handler)
 
-class OrderBookCollector:
-    def __init__(self, exchange='coinbase', product_id='ETH-USD', n_levels=10):
+class CryptoCollector:
+    def __init__(self, products=['ETH-USD', 'BTC-USD'], n_levels=10):
         """
-        Initialize order book collector
-        
         Args:
-            exchange: 'coinbase' or 'binance'
-            product_id: Trading pair (ETH-USD for Coinbase, ETHUSDT for Binance)
-            n_levels: Number of order book levels to collect (default: 10)
+            products: List of pairs to collect (e.g. ['ETH-USD', 'BTC-USD'])
+            n_levels: Depth of order book to save
         """
-        self.exchange = exchange
-        self.product_id = product_id
+        self.products = products
         self.n_levels = n_levels
-        self.data = []
+        self.buffers = {p: [] for p in products}
+        self.session = requests.Session()
         
-    def fetch_coinbase_orderbook(self):
-        """Fetch order book from Coinbase"""
-        url = f'https://api.exchange.coinbase.com/products/{self.product_id}/book'
-        params = {'level': 2}  # Top 50 levels
-        
+        # Track total collection cycles
+        self.api_calls = 0
+
+    def fetch_data(self, product_id):
+        """Fetch both OrderBook and Ticker (Price/Vol) data"""
         try:
-            response = requests.get(url, params=params, timeout=5)
-            response.raise_for_status()
-            return response.json()
+            # 1. Get Order Book (Level 2)
+            book_url = f'https://api.exchange.coinbase.com/products/{product_id}/book?level=2'
+            book_res = self.session.get(book_url, timeout=2)
+            book_res.raise_for_status()
+            book = book_res.json()
+
+            # 2. Get Ticker (Last Price & 24h Volume)
+            ticker_url = f'https://api.exchange.coinbase.com/products/{product_id}/ticker'
+            ticker_res = self.session.get(ticker_url, timeout=2)
+            ticker_res.raise_for_status()
+            ticker = ticker_res.json()
+
+            return book, ticker
+
         except Exception as e:
-            logger.error(f"Failed to fetch Coinbase orderbook: {e}", exc_info=True)
-            return None
-    
-    def fetch_binance_orderbook(self):
-        """Fetch order book from Binance"""
-        url = 'https://api.binance.com/api/v3/depth'
-        params = {'symbol': self.product_id, 'limit': 100}
-        
-        try:
-            response = requests.get(url, params=params, timeout=5)
-            response.raise_for_status()
-            return response.json()
-        except Exception as e:
-            logger.error(f"Failed to fetch Binance orderbook: {e}", exc_info=True)
-            return None
-    
-    def orderbook_to_features(self, orderbook):
-        """
-        Convert order book to flat feature vector (DeepLOB style)
-        
-        Returns 40 features for 10 levels:
-            [bid_price_1, bid_vol_1, ask_price_1, ask_vol_1, 
-             bid_price_2, bid_vol_2, ask_price_2, ask_vol_2, ...]
-        """
-        features = []
-        
-        if self.exchange == 'coinbase':
-            bids = [[float(b[0]), float(b[1])] for b in orderbook.get('bids', [])[:self.n_levels]]
-            asks = [[float(a[0]), float(a[1])] for a in orderbook.get('asks', [])[:self.n_levels]]
-        else:  # binance
-            bids = [[float(b[0]), float(b[1])] for b in orderbook.get('bids', [])[:self.n_levels]]
-            asks = [[float(a[0]), float(a[1])] for a in orderbook.get('asks', [])[:self.n_levels]]
-        
-        for i in range(self.n_levels):
-            if i < len(bids):
-                features.extend([bids[i][0], bids[i][1]])
-            else:
-                features.extend([0.0, 0.0])
-            
-            if i < len(asks):
-                features.extend([asks[i][0], asks[i][1]])
-            else:
-                features.extend([0.0, 0.0])
-        
-        return features
-    
-    def collect_snapshot(self):
-        """Collect a single order book snapshot"""
+            logger.error(f"Error fetching {product_id}: {e}")
+            return None, None
+
+    def process_snapshot(self, product_id, book, ticker):
+        """Flatten data into a single row"""
         timestamp = datetime.utcnow()
         
-        if self.exchange == 'coinbase':
-            orderbook = self.fetch_coinbase_orderbook()
-        else:
-            orderbook = self.fetch_binance_orderbook()
-        
-        if orderbook is None:
-            logger.warning("Skipped snapshot due to missing orderbook")
-            return None
-        
-        features = self.orderbook_to_features(orderbook)
-        
-        # Create record with timestamp and features
-        record = {'timestamp': timestamp}
+        # Base record
+        record = {
+            'timestamp': timestamp,
+            'price': float(ticker.get('price', 0)),
+            'volume': float(ticker.get('volume', 0)), # 24h volume
+        }
+
+        # Flatten Order Book
+        bids = book.get('bids', [])
+        asks = book.get('asks', [])
+
         for i in range(self.n_levels):
-            idx = i * 4
-            record[f'bid_price_{i+1}'] = features[idx]
-            record[f'bid_vol_{i+1}'] = features[idx + 1]
-            record[f'ask_price_{i+1}'] = features[idx + 2]
-            record[f'ask_vol_{i+1}'] = features[idx + 3]
-        
+            # Bids [price, size, num_orders]
+            if i < len(bids):
+                record[f'bid_price_{i+1}'] = float(bids[i][0])
+                record[f'bid_vol_{i+1}']   = float(bids[i][1])
+            else:
+                record[f'bid_price_{i+1}'] = 0.0
+                record[f'bid_vol_{i+1}']   = 0.0
+            
+            # Asks
+            if i < len(asks):
+                record[f'ask_price_{i+1}'] = float(asks[i][0])
+                record[f'ask_vol_{i+1}']   = float(asks[i][1])
+            else:
+                record[f'ask_price_{i+1}'] = 0.0
+                record[f'ask_vol_{i+1}']   = 0.0
+
         return record
-    
-    def collect_continuous(self, duration_hours=1, interval_seconds=10, save_path='orderbook_data.csv'):
-        """
-        Collect order book data continuously
+
+    def save_buffers(self, data_dir='data'):
+        """Append in-memory buffers to CSVs and clear memory"""
+        Path(data_dir).mkdir(parents=True, exist_ok=True)
+
+        for product_id, rows in self.buffers.items():
+            if not rows:
+                continue
+            
+            # Generate filename: data/ETH-USD_5s.csv
+            filename = f"{product_id.replace('-','')}_5s.csv"
+            filepath = Path(data_dir) / filename
+            
+            df = pd.DataFrame(rows)
+            
+            # Append if exists, write header if new
+            header = not filepath.exists()
+            df.to_csv(filepath, mode='a', header=header, index=False)
+            
+            # Clear buffer to free RAM
+            self.buffers[product_id] = []
         
-        Args:
-            duration_hours: How long to collect (hours)
-            interval_seconds: Time between snapshots (seconds)
-            save_path: Where to save the CSV
-        """
-        save_path = Path(save_path)
-        save_path.parent.mkdir(parents=True, exist_ok=True)
-        
-        end_time = datetime.utcnow() + timedelta(hours=duration_hours)
-        snapshots_collected = 0
-        
-        logger.info("📊 Starting order book collection...")
-        logger.info(f"   Exchange: {self.exchange}")
-        logger.info(f"   Product: {self.product_id}")
-        logger.info(f"   Duration: {duration_hours} hours")
-        logger.info(f"   Interval: {interval_seconds} seconds")
-        logger.info(f"   Save path: {save_path}")
-        logger.info(f"   Storage mode: Keep only last 100 rows")
-        logger.info(f"   Expected snapshots: ~{int(duration_hours * 3600 / interval_seconds):,}")
-        print(f"   Expected snapshots: ~{int(duration_hours * 3600 / interval_seconds):,}")
+        logger.info(f"💾 Flushed data to disk")
+
+    def run(self, interval=5):
+        """Main loop"""
+        logger.info(f"🚀 Starting collection for {self.products}")
+        logger.info(f"⏱️  Interval: {interval}s")
         
         try:
-            while datetime.utcnow() < end_time:
-                print(f"🔍 Fetching snapshot {snapshots_collected + 1}...")
-                snapshot = self.collect_snapshot()
+            while True:
+                start_time = time.time()
                 
-                if snapshot:
-                    self.data.append(snapshot)
-                    snapshots_collected += 1
-                    
-                    # Keep only last 100 rows in memory to save storage
-                    if len(self.data) > 100:
-                        self.data = self.data[-100:]
-                    
-                    # Save every 100 snapshots (but CSV will only have last 100 rows)
-                    if snapshots_collected % 100 == 0:
-                        logger.info(f"📈 Collected {snapshots_collected} snapshots (latest: {snapshot['timestamp']})")
-                        print(f"💾 Saving to CSV (last 100 rows only)...")
-                        df = pd.DataFrame(self.data)
-                        df.to_csv(save_path, index=False)
-                        logger.info(f"✅ Saved last 100 snapshots to {save_path}")
-                        print(f"✅ Saved last 100 snapshots to {save_path}")
+                # UPDATED: Increment counter once per loop iteration
+                self.api_calls += 1
                 
-                time.sleep(interval_seconds)
-        
+                current_stats = {} # Store stats for printing
+                
+                # 1. Fetch data for ALL products
+                for product in self.products:
+                    book, ticker = self.fetch_data(product)
+                    
+                    if book and ticker:
+                        row = self.process_snapshot(product, book, ticker)
+                        self.buffers[product].append(row)
+                        
+                        # Save stats for the log message
+                        current_stats[product] = {
+                            'price': row['price'],
+                            'volume': row['volume']
+                        }
+
+                # 2. Print Consolidated Log
+                if current_stats:
+                    msg_parts = [f"Collected L2 Data (Iter: {self.api_calls})"]
+                    
+                    for prod in self.products:
+                        if prod in current_stats:
+                            stats = current_stats[prod]
+                            # Format: ETH-USD: $2000.50 (Vol: 15400.0)
+                            prod_msg = f"{prod}: ${stats['price']:.2f} (Vol: {stats['volume']:.0f})"
+                            msg_parts.append(prod_msg)
+                    
+                    logger.info(" | ".join(msg_parts))
+
+                # 3. Save to disk every 50 snapshots
+                if len(list(self.buffers.values())[0]) >= 50:
+                    self.save_buffers()
+
+                # 4. Sleep
+                elapsed = time.time() - start_time
+                sleep_time = max(0, interval - elapsed)
+                time.sleep(sleep_time)
+
         except KeyboardInterrupt:
-            logger.warning("\n⚠️  Collection interrupted by user")
-        
-        finally:
-            # Final save (only last 100 rows)
-            if self.data:
-                df = pd.DataFrame(self.data[-100:])
-                df.to_csv(save_path, index=False)
-                logger.info(f"\n✅ Final save: {len(df)} snapshots saved to {save_path}")
-                logger.info(f"   Time range: {df['timestamp'].min()} to {df['timestamp'].max()}")
-                logger.info(f"   File size: {save_path.stat().st_size / 1024 / 1024:.2f} MB")
-            else:
-                logger.warning("\n⚠️  No data collected")
+            logger.info("\n🛑 Stopping... Saving remaining data.")
+            self.save_buffers()
+            logger.info("✅ Done.")
 
-def main():
-    """Example usage"""
-    # Collect from Coinbase - FREE, no API key needed, no geo restrictions!
-    # 1 snapshot per minute = 1,440 snapshots/day
-    # Run continuously - will collect whenever laptop is on
-    
-    collector = OrderBookCollector(
-        exchange='coinbase',
-        product_id='ETH-USD',
-        n_levels=10
-    )
-    
-    # Collect continuously (1 snapshot every 5 seconds)
-    # Set high duration - will run until you stop it
-    collector.collect_continuous(
-        duration_hours=24 * 365,  # 1 year (will run until stopped)
-        interval_seconds=5,        # 5 second intervals
-        save_path='eth_orderbook_coinbase_5s.csv'
-    )
-
-if __name__ == '__main__':
-    main()
+if __name__ == "__main__":
+    # Collects ETH and BTC simultaneously
+    collector = CryptoCollector(products=['ETH-USD', 'BTC-USD'])
+    collector.run(interval=5)
