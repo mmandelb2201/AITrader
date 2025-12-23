@@ -1,20 +1,20 @@
 # AITrader
 
-An AI-powered cryptocurrency trading bot that uses LSTM (Long Short-Term Memory) neural networks with asset embeddings to predict price movements and execute trades via the Coinbase API.
+An AI-powered cryptocurrency trading bot that uses a hybrid CNN-LSTM neural network to predict price direction from L2 order book data and execute trades via the Coinbase API.
 
 ## Overview
 
 AITrader combines machine learning and automated trading to analyze cryptocurrency market data and make informed trading decisions. The system consists of three main components:
 
-1. **LSTM Model** - A TensorFlow-based deep learning model that predicts cryptocurrency price movements
+1. **CNN-LSTM Classifier Model** - A hybrid deep learning model using convolutional and LSTM layers to predict cryptocurrency price direction from L2 order book data
 2. **Trading Bot** - A C#/.NET application that executes trades on Coinbase based on model predictions
 3. **Paper Wallet** - A simulation tool for backtesting trading strategies without risking real funds
 
 ## Features
 
-- 🤖 **AI-Driven Predictions**: LSTM neural network with asset embeddings for multi-cryptocurrency price forecasting
+- 🤖 **AI-Driven Predictions**: CNN-LSTM hybrid neural network for cryptocurrency price direction classification using L2 order book data
 - 📊 **Real-Time Trading**: Automated trading execution through Coinbase Advanced API
-- 🔄 **Continuous Learning**: Model trained on hourly historical price and volume data
+- 🔄 **Continuous Learning**: Model trained on high-frequency (5-second) L2 order book data
 - 🧪 **Backtesting**: Paper trading wallet for strategy validation
 - 🐳 **Docker Support**: Containerized deployment for easy setup
 - 📈 **Multi-Asset Support**: Tracks and trades multiple cryptocurrencies simultaneously
@@ -22,29 +22,38 @@ AITrader combines machine learning and automated trading to analyze cryptocurren
 
 ## Architecture
 
-### LSTM Model (`/model/LSTM Model/`)
+### CNN-LSTM Classifier Model (`/model/classifier_model/`)
 
 The machine learning component built with TensorFlow that:
-- Processes hourly cryptocurrency price and volume data
-- Uses a stacked LSTM architecture with asset embeddings
-- Predicts price percentage changes over a configurable horizon (default: 3 hours)
-- Supports multiple cryptocurrencies with shared learned representations
+- Processes high-frequency (5-second) Level 2 order book data
+- Uses a hybrid CNN-LSTM architecture to capture both local patterns and temporal dependencies
+- Predicts short-term price direction (up/down) using dynamic triple barrier labeling
+- Features advanced preprocessing: log returns, robust scaling, and volatility-based thresholds
 
 **Key Files:**
-- `crypto_lstm_embedding_tf.ipynb` - Main training notebook
-- `top_cryptos.py` - Fetches top cryptocurrencies by market cap from CoinGecko
-- `external_data_collector.py` - Collects historical data from CoinAPI
-- `backtest.ipynb` - Backtesting utilities
+- `simple_l2_cnn.ipynb` - **Main training notebook** for the CNN-LSTM classifier
+- `midprice_direction_classifier.ipynb` - Alternative classifier implementation
+- `feature_analysis.ipynb` - Feature engineering and analysis tools
 - `config.py` - Model hyperparameters and configuration
+
+**Model Architecture:**
+- **Block 1 (CNN):** Local feature extraction with 64 filters capturing short-term order book patterns
+- **Block 2 (LSTM):** Temporal memory layers (2x64 units) for long-term context
+- **Block 3 (Dense):** Classification head with softmax output
 
 **Model Configuration:**
 ```python
-LOOKBACK_L = 96     # lookback window length (hours)
-HORIZON_H  = 3      # prediction horizon (hours)
-FEATURES = ['price_pct_change', 'volume_pct_change']
-BATCH_TRAIN = 256
-EPOCHS = 30
+SEQUENCE_LENGTH = 100    # 500 seconds lookback window (100 timesteps of 5s intervals)
+LOOKAHEAD_STEPS = 180    # 15 minutes prediction horizon (180 timesteps of 5s intervals)
+TAKE_PROFIT_PCT = 0.0015 # +0.15% dynamic threshold
+STOP_LOSS_PCT = 0.0015   # -0.15% dynamic threshold
 ```
+
+**Key Features:**
+- Dynamic triple barrier labeling using rolling volatility
+- Robust feature engineering (log returns, log volume changes, relative spreads)
+- RobustScaler for outlier resistance (crypto whale orders, flash crashes)
+- Chronological train/validation split to prevent look-ahead bias
 
 ### Trading Bot (`/Trading Bot/`)
 
@@ -76,13 +85,12 @@ A Python-based simulation tool for testing trading strategies:
 
 ## Prerequisites
 
-### For the LSTM Model:
+### For the CNN-LSTM Classifier Model:
 - Python 3.8+
 - TensorFlow 2.x
+- scikit-learn
 - Jupyter Notebook
-- API Keys:
-  - CoinAPI key (for historical data)
-  - CoinGecko API (free tier works)
+- L2 order book data (5-second interval snapshots)
 
 ### For the Trading Bot:
 - .NET 8.0 SDK
@@ -100,22 +108,22 @@ git clone https://github.com/mmandelb2201/AITrader.git
 cd AITrader
 ```
 
-### 2. Set Up the LSTM Model
+### 2. Set Up the CNN-LSTM Classifier Model
 
 ```bash
-cd "model/LSTM Model"
+cd "model/classifier_model"
 
 # Install Python dependencies
-pip install tensorflow pandas numpy requests matplotlib jupyter
+pip install tensorflow pandas numpy scikit-learn matplotlib jupyter
 
-# Set up your CoinAPI key
-export COIN_API_KEY="your_coinapi_key_here"
+# Ensure you have L2 order book data in the correct path
+# Default: ../data/5s_data/eth_orderbook_coinbase_5s_with_price_volume.csv
 
 # Run Jupyter notebooks to train the model
 jupyter notebook
 ```
 
-Open `crypto_lstm_embedding_tf.ipynb` to train the model.
+Open `simple_l2_cnn.ipynb` to train the CNN-LSTM classifier model.
 
 ### 3. Set Up the Trading Bot
 
@@ -157,13 +165,13 @@ docker run -v $(pwd)/Config.xml:/app/Config.xml \
 
 ## Configuration
 
-### Model Configuration (`model/LSTM Model/config.py`)
+### Model Configuration (`model/classifier_model/simple_l2_cnn.ipynb`)
 
-Adjust these parameters based on your training needs:
-- `LOOKBACK_L` - Number of hours of historical data to use for predictions
-- `HORIZON_H` - Number of hours ahead to predict
-- `EPOCHS` - Number of training epochs
-- `BATCH_TRAIN` - Training batch size
+Adjust these parameters in the notebook based on your training needs:
+- `SEQUENCE_LENGTH` - Number of timesteps in lookback window (default: 100 timesteps = 500 seconds with 5s intervals)
+- `LOOKAHEAD_STEPS` - Prediction horizon in timesteps (default: 180 timesteps = 15 minutes with 5s intervals)
+- `TAKE_PROFIT_PCT` / `STOP_LOSS_PCT` - Dynamic threshold multipliers for triple barrier labeling
+- Training parameters: batch size, epochs, learning rate, etc.
 
 ### Trading Bot Configuration (`Trading Bot/Trading Bot/Config.xml`)
 
@@ -177,10 +185,10 @@ Configure the bot's behavior:
 
 ### Training the Model
 
-1. Collect data using the data grabber notebooks
-2. Run the training notebook (`crypto_lstm_embedding_tf.ipynb`)
-3. Convert the model to ONNX format using `model_converter.ipynb`
-4. Place the ONNX model in the path specified in `Config.xml`
+1. Collect L2 order book data using the data grabber notebooks in `/model/data/`
+2. Run the main training notebook (`simple_l2_cnn.ipynb`) to train the CNN-LSTM classifier
+3. Convert the model to ONNX format for deployment (if needed)
+4. Place the trained model in the path specified in `Config.xml`
 
 ### Running the Trading Bot
 
@@ -222,12 +230,14 @@ wallet.print_total_value(eth_price=2100)
 ```
 AITrader/
 ├── model/
-│   ├── LSTM Model/
-│   │   ├── crypto_lstm_embedding_tf.ipynb    # Main training notebook
-│   │   ├── top_cryptos.py                     # Crypto selection
-│   │   ├── external_data_collector.py         # Data collection
-│   │   ├── backtest.ipynb                     # Backtesting
-│   │   ├── config.py                          # Model config
+│   ├── classifier_model/
+│   │   ├── simple_l2_cnn.ipynb                # Main CNN-LSTM training notebook
+│   │   ├── midprice_direction_classifier.ipynb # Alternative classifier
+│   │   ├── feature_analysis.ipynb             # Feature engineering tools
+│   │   ├── config.py                          # Model configuration
+│   │   └── models/                            # Saved model files
+│   ├── data/
+│   │   ├── data_grabber.ipynb                 # Data collection notebooks
 │   │   └── ...
 │   └── paper_wallet/
 │       └── wallet.py                          # Paper trading wallet
